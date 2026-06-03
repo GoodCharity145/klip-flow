@@ -1,0 +1,737 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: ClipFlow Video Editor API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: projects
+    description: Video editing projects
+  - name: clips
+    description: Clips within a project
+  - name: subscriptions
+    description: Subscription plans and user billing
+  - name: dashboard
+    description: Dashboard summaries and stats
+  - name: ai
+    description: AI-powered features
+  - name: storage
+    description: File upload and object storage
+paths:
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestUploadUrlBody"
+      responses:
+        "200":
+          description: Presigned upload URL and object path
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestUploadUrlResponse"
+
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List all projects
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [draft, completed, archived]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a new project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectBody"
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+
+  /projects/{id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get a project by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "404":
+          description: Not found
+    put:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update a project
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectBody"
+      responses:
+        "200":
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /projects/{id}/export:
+    post:
+      operationId: exportProject
+      tags: [projects]
+      summary: Export project as a video file using FFmpeg
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Export completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportProjectResponse"
+        "400":
+          description: No processable clips found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{id}/clips:
+    get:
+      operationId: listClips
+      tags: [clips]
+      summary: List clips in a project
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of clips
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Clip"
+    post:
+      operationId: createClip
+      tags: [clips]
+      summary: Add a clip to a project
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClipBody"
+      responses:
+        "201":
+          description: Created clip
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Clip"
+
+  /projects/{id}/clips/{clipId}:
+    put:
+      operationId: updateClip
+      tags: [clips]
+      summary: Update a clip
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: clipId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClipBody"
+      responses:
+        "200":
+          description: Updated clip
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Clip"
+    delete:
+      operationId: deleteClip
+      tags: [clips]
+      summary: Delete a clip
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: clipId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /plans:
+    get:
+      operationId: listPlans
+      tags: [subscriptions]
+      summary: List subscription plans
+      responses:
+        "200":
+          description: List of plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Plan"
+
+  /openai/captions:
+    post:
+      operationId: generateCaptions
+      tags: [ai]
+      summary: Generate auto-captions for a project using AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateCaptionsBody"
+      responses:
+        "200":
+          description: Generated captions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateCaptionsResponse"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard summary stats
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/recent-projects:
+    get:
+      operationId: getRecentProjects
+      tags: [dashboard]
+      summary: Get recently edited projects
+      responses:
+        "200":
+          description: Recent projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [draft, completed, archived]
+        thumbnailUrl:
+          type: string
+          nullable: true
+        duration:
+          type: number
+          description: Total duration in seconds
+        aspectRatio:
+          type: string
+          enum: ["16:9", "9:16", "1:1", "4:3"]
+        resolution:
+          type: string
+          enum: ["720p", "1080p", "4K"]
+        clipCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - status
+        - duration
+        - aspectRatio
+        - resolution
+        - clipCount
+        - createdAt
+        - updatedAt
+
+    CreateProjectBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        aspectRatio:
+          type: string
+          enum: ["16:9", "9:16", "1:1", "4:3"]
+          default: "16:9"
+        resolution:
+          type: string
+          enum: ["720p", "1080p", "4K"]
+          default: "1080p"
+      required:
+        - name
+
+    UpdateProjectBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [draft, completed, archived]
+        thumbnailUrl:
+          type: string
+        duration:
+          type: number
+        aspectRatio:
+          type: string
+          enum: ["16:9", "9:16", "1:1", "4:3"]
+        resolution:
+          type: string
+          enum: ["720p", "1080p", "4K"]
+
+    Clip:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          enum: [video, audio, image, text]
+        startTime:
+          type: number
+          description: Start position on timeline in seconds
+        duration:
+          type: number
+          description: Clip duration in seconds
+        trackIndex:
+          type: integer
+          description: Which track lane this clip is on
+        sourceUrl:
+          type: string
+          nullable: true
+        volume:
+          type: number
+          minimum: 0
+          maximum: 1
+        opacity:
+          type: number
+          minimum: 0
+          maximum: 1
+        effects:
+          type: array
+          items:
+            type: string
+        transition:
+          type: string
+          nullable: true
+        textContent:
+          type: string
+          nullable: true
+        textStyle:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - name
+        - type
+        - startTime
+        - duration
+        - trackIndex
+        - volume
+        - opacity
+        - effects
+        - createdAt
+
+    CreateClipBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [video, audio, image, text]
+        startTime:
+          type: number
+        duration:
+          type: number
+        trackIndex:
+          type: integer
+        sourceUrl:
+          type: string
+          nullable: true
+        volume:
+          type: number
+        opacity:
+          type: number
+        effects:
+          type: array
+          items:
+            type: string
+        transition:
+          type: string
+          nullable: true
+        textContent:
+          type: string
+        textStyle:
+          type: object
+      required:
+        - name
+        - type
+        - startTime
+        - duration
+        - trackIndex
+
+    UpdateClipBody:
+      type: object
+      properties:
+        name:
+          type: string
+        startTime:
+          type: number
+        duration:
+          type: number
+        trackIndex:
+          type: integer
+        sourceUrl:
+          type: string
+        volume:
+          type: number
+        opacity:
+          type: number
+        effects:
+          type: array
+          items:
+            type: string
+        transition:
+          type: string
+        textContent:
+          type: string
+        textStyle:
+          type: object
+
+    Plan:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        price:
+          type: number
+          description: Monthly price in USD
+        yearlyPrice:
+          type: number
+          description: Yearly price in USD (monthly equivalent)
+        features:
+          type: array
+          items:
+            type: string
+        maxProjects:
+          type: integer
+          nullable: true
+          description: null means unlimited
+        maxExportResolution:
+          type: string
+        hasWatermark:
+          type: boolean
+        hasAIFeatures:
+          type: boolean
+        storageGb:
+          type: number
+        popular:
+          type: boolean
+      required:
+        - id
+        - name
+        - price
+        - yearlyPrice
+        - features
+        - maxExportResolution
+        - hasWatermark
+        - hasAIFeatures
+        - storageGb
+        - popular
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    ExportProjectResponse:
+      type: object
+      properties:
+        downloadUrl:
+          type: string
+          description: Signed URL to download the exported video (valid 24h)
+        objectPath:
+          type: string
+          description: GCS object path for the exported video
+        duration:
+          type: number
+          description: Duration of the exported video in seconds
+      required:
+        - downloadUrl
+        - objectPath
+        - duration
+
+    RequestUploadUrlBody:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Original filename
+        size:
+          type: integer
+          description: File size in bytes
+        contentType:
+          type: string
+          description: MIME type of the file
+      required:
+        - name
+        - size
+        - contentType
+
+    RequestUploadUrlResponse:
+      type: object
+      properties:
+        uploadURL:
+          type: string
+          description: Presigned PUT URL for uploading directly to GCS
+        objectPath:
+          type: string
+          description: Path to use when serving the uploaded file
+      required:
+        - uploadURL
+        - objectPath
+
+    GenerateCaptionsBody:
+      type: object
+      properties:
+        projectId:
+          type: integer
+        projectName:
+          type: string
+        projectDescription:
+          type: string
+        totalDuration:
+          type: number
+          description: Total project duration in seconds
+        clipSummary:
+          type: string
+          description: Brief description of the clips in the project
+      required:
+        - projectId
+        - projectName
+        - totalDuration
+
+    CaptionSegment:
+      type: object
+      properties:
+        startTime:
+          type: number
+          description: Start time in seconds
+        duration:
+          type: number
+          description: Duration in seconds
+        text:
+          type: string
+          description: Caption text content
+      required:
+        - startTime
+        - duration
+        - text
+
+    GenerateCaptionsResponse:
+      type: object
+      properties:
+        captions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaptionSegment"
+        createdClips:
+          type: array
+          items:
+            $ref: "#/components/schemas/Clip"
+      required:
+        - captions
+        - createdClips
+
+    DashboardStats:
+      type: object
+      properties:
+        totalProjects:
+          type: integer
+        draftProjects:
+          type: integer
+        completedProjects:
+          type: integer
+        totalClips:
+          type: integer
+        totalEditingHours:
+          type: number
+        storageUsedGb:
+          type: number
+        storageCapacityGb:
+          type: number
+        currentPlan:
+          type: string
+      required:
+        - totalProjects
+        - draftProjects
+        - completedProjects
+        - totalClips
+        - totalEditingHours
+        - storageUsedGb
+        - storageCapacityGb
+        - currentPlan
