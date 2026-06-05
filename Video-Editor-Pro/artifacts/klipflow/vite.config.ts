@@ -57,6 +57,12 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 2000,
+    cssCodeSplit: true,
+    minify: 'esbuild',
+    rollupOptions: {
+      maxParallelFileOps: 2,
+    }
   },
   server: {
     port,
